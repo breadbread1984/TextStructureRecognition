@@ -3,10 +3,10 @@
 import numpy as np;
 import tensorflow as tf;
 
-def GraphAdjacentLayer(num_features, num_dims, jump = 1, use_dropout = False, activation = 'softmax', operator = 'J2'):
+def GraphAdjacentLayer(d_in, num_dims, jump = 1, use_dropout = False, activation = 'softmax', operator = 'J2'):
 
   assert activation in ['softmax', 'sigmoid', 'none'];
-  x = tf.keras.Input((None, num_features)); # x.shape = (batch, N, d_in)
+  x = tf.keras.Input((None, d_in)); # x.shape = (batch, N, d_in)
   w = tf.keras.Input((None, None, jump)); # w.shape = (batch, N, N, jump)
   xi = tf.keras.layers.Lambda(lambda x: tf.expand_dims(x, 2))(x); # xi.shape = (batch, N, 1, d_in)
   xj = tf.keras.layers.Lambda(lambda x: tf.expand_dims(x, 1))(x); # xj.shape = (batch, 1, N, d_im)
@@ -45,6 +45,18 @@ def GraphAdjacentLayer(num_features, num_dims, jump = 1, use_dropout = False, ac
     raise Exception('unknown operator!');
   return tf.keras.Model(inputs = (x, w), outputs = results);
 
+def GConv(d_in, d_out, jump = 1):
+
+  x = tf.keras.Input((None, d_in)); # x.shape = (batch, N, d_in)
+  w = tf.keras.Input((None, None, jump)); # w.shape = (batch, N, N, jump)
+  w_reshape = tf.keras.layers.Lambda(lambda x: tf.reshape(tf.transpose(x, (0,3,1,2)), (-1, tf.shape(x)[3] * tf.shape(x)[1], tf.shape(x)[2])))(w); # w_reshape.shape = (batch, jump * N, N)
+  results = tf.keras.layers.Lambda(lambda x: tf.linalg.matmul(x[0], x[1]))([w_reshape, x]); # results.shape = (batch, jump * N, d_in)
+  results = tf.keras.layers.Lambda(lambda x: tf.transpose(tf.reshape(x[0], (-1, tf.shape(x[1])[3], tf.shape(x[1])[1], tf.shape(x[0])[-1])), (0,2,3,1)))([results, w]); # results.shape = (batch, N, d_in, jump)
+  results = tf.keras.layers.Flatten()(results); # results.shape = (batch, N, d_in * jump)
+  results = tf.keras.layers.Dense(units = d_out)(results); # results.shape = (batch, N, d_out)
+  results = tf.keras.layers.BatchNormalization()(results); # results.shape = (batch, N, d_out)
+  return tf.keras.Model(inputs = (x, w), outputs = results);
+
 if __name__ == "__main__":
 
   assert tf.executing_eagerly();
@@ -53,4 +65,8 @@ if __name__ == "__main__":
   a = tf.constant(np.random.normal(size = (8, 10, 128)), dtype = tf.float32);
   w = tf.constant(np.random.normal(size = (8, 10, 10, 2)), dtype = tf.float32);
   b = gal([a,w]);
+  print(b.shape);
+  gc = GConv(128, 128, jump = 2);
+  gc.save('gc.h5');
+  b = gc([a,w]);
   print(b.shape);
