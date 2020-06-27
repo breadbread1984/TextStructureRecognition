@@ -8,6 +8,21 @@ import numpy as np;
 import cv2;
 import tensorflow as tf;
 
+def parse_function(serialized_example):
+
+  feature = tf.io.parse_single_example(
+    serialized_example,
+    features = {
+      'num': tf.io.FixedLenFeature((), dtype = tf.int64),
+      'embeddings': tf.io.VarLenFeature(dtype = tf.float32),
+      'weights': tf.io.VarLenFeature(dtype = tf.float32)});
+  num = tf.cast(feature['num'], dtype = tf.int32);
+  embeddings = tf.sparse.to_dense(feature['embeddings'], default_value = 0);
+  embeddings = tf.reshape(embeddings, (num, 4));
+  weights = tf.sparse.to_dense(feature['weights'], default_value = 0);
+  weights = tf.reshape(weights, (num, num));
+  return embeddings, weights;
+
 def create_dataset(dataset_path):
 
   if not exists(dataset_path): return False;
