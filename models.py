@@ -63,15 +63,14 @@ def GNN(d_in, num_dims, num_layers, num_classes):
 
   x = tf.keras.Input((None, d_in)); # x.shape = (batch, N, d_in)
   w = tf.keras.layers.Lambda(lambda x: tf.tile(tf.reshape(tf.eye(tf.shape(x)[1]), (1,tf.shape(x)[1],tf.shape(x)[1],1)), (tf.shape(x)[0], 1, 1, 1)))(x); # w.shape = (batch, N, N, 1)
-  results = x;
-  w_new = w;
+  prev_x = x;
   for i in range(num_layers):
-    w_new = GraphAdjacentLayer(d_in = d_in + (num_dims // 2) * i, num_dims = num_dims, jump = 2**i, operator = 'J2')([results, w_new]); # w.shape = (batch, N, N, 2)
-    results_new = GConv(d_in = d_in + (num_dims // 2) * i, d_out = num_dims // 2, jump = 2**(i+1))([results, w_new]); # x_new.shape = (batch, N, num_dims // 2)
-    results_new = tf.keras.layers.LeakyReLU()(results_new); # x_new.shape = (batch, N, num_dims // 2)
-    results = tf.keras.layers.Concatenate()([results, results_new]); # x.shape = (batch, N, num_dims * 1.5)
-  w_new = GraphAdjacentLayer(d_in = d_in + (num_dims // 2) * num_layers, num_dims = num_dims, jump = 2**num_layers, operator = 'J2')([results, w_new]); # w.shape = (batch, N, N, 2)
-  results = GConv(d_in = d_in + (num_dims // 2) * num_layers, d_out = num_classes, jump = 2**(num_layers + 1))([results, w_new]); # x.shape = (batch, N, num_classes)
+    w = GraphAdjacentLayer(d_in = d_in + (num_dims // 2) * i, num_dims = num_dims, jump = 2**i, operator = 'J2')([prev_x, w]); # w.shape = (batch, N, N, 2)
+    cur_x = GConv(d_in = d_in + (num_dims // 2) * i, d_out = num_dims // 2, jump = 2**(i+1))([prev_x, w]); # x_new.shape = (batch, N, num_dims // 2)
+    cur_x = tf.keras.layers.LeakyReLU()(cur_x); # x_new.shape = (batch, N, num_dims // 2)
+    prev_x = tf.keras.layers.Concatenate()([prev_x, cur_x]); # x.shape = (batch, N, num_dims * 1.5)
+  w = GraphAdjacentLayer(d_in = d_in + (num_dims // 2) * num_layers, num_dims = num_dims, jump = 2**num_layers, operator = 'J2')([prev_x, w]); # w.shape = (batch, N, N, 2)
+  results = GConv(d_in = d_in + (num_dims // 2) * num_layers, d_out = num_classes, jump = 2**(num_layers + 1))([prev_x, w]); # x.shape = (batch, N, num_classes)
   return tf.keras.Model(inputs = x, outputs = results);
 
 if __name__ == "__main__":
