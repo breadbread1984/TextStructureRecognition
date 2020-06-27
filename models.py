@@ -59,6 +59,18 @@ def GConv(d_in, d_out, jump = 1):
   results = tf.keras.layers.BatchNormalization()(results); # results.shape = (batch, N, d_out)
   return tf.keras.Model(inputs = (x, w), outputs = results);
 
+def GNN(d_in, num_dims, num_layers, num_classes):
+
+  x = tf.keras.Input((None, d_in)); # x.shape = (batch, N, d_in)
+  w = tf.keras.layers.Lambda(lambda x: tf.tile(tf.expand_dims(tf.eye(tf.shape(x)[1]), axis = 0), (tf.shape(x)[0], 1, 1)))(x); # w.shape = (batch, N, N)
+  for i in range(num_layers):
+    w = GraphAdjacentLayer(d_in = d_in + (num_dims // 2) * i, num_dims = num_dims, jump = 1, operator = 'J2')([x,w]); # w.shape = (batch, N, N, 2)
+    x_new = GConv(d_in = d_in + (num_dims // 2) * i, d_out = num_dims // 2, jump = 2)([x, w]); # x.shape = (batch, N, num_dims // 2)
+    x = tf.keras.layers.Concatenate()([x, x_new]); # x.shape = (batch, N, num_dims * 1.5)
+  w = GraphAdjacentLayer(d_in = d_in + (num_dims // 2) * num_layers, num_dims = num_dims, jump = 1, operator = 'J2')([x,w]); # w.shape = (batch, N, N, 2)
+  x = GConv(d_in = d_in + (num_dims // 2) * num_layers, d_out = num_classes, jump = 2)([x,w]); # x.shape = (batch, N, num_classes)
+  return tf.keras.Model(inputs = (x, w), outputs = x);
+
 if __name__ == "__main__":
 
   assert tf.executing_eagerly();
@@ -71,4 +83,8 @@ if __name__ == "__main__":
   gc = GConv(128, 128, jump = 2);
   gc.save('gc.h5');
   b = gc([a,w]);
+  print(b.shape);
+  gnn = GNN(128, 128, 3, 10);
+  gnn.save('gnn.h5');
+  b = gnn([a,w]);
   print(b.shape);
