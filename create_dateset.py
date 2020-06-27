@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import sys;
+from os import mkdir;
 from os.path import join, exists;
 import json;
 import numpy as np;
@@ -14,6 +15,7 @@ def create_dataset(dataset_path):
   writer = tf.io.TFRecordWriter(join('datasets', 'trainset.tfrecord'));
   with open(join(dataset_path, 'via_project.json'), 'r') as f:
     via = json.load(f);
+  count = 0;
   for fid in via['_via_img_metadata']:
     fn = join(dataset_path, 'images', via['_via_img_metadata'][fid]['filename']);
     img = cv2.imread(fn);
@@ -37,14 +39,18 @@ def create_dataset(dataset_path):
       bottom = int(min(img.shape[0], y + h));      
       crop = img[top:bottom, left:right, :];
       positions.append([left / width, top / height, right / width, bottom / height]);
-    embeddings = tf.constant(np.array(positions, dtype = np.float32)); # embeddings.shape = (N, 4)
+    if len(positions) == 0: continue;
+    embeddings = np.array(positions, dtype = np.float32); # embeddings.shape = (N, 4)
     weights = tf.linalg.band_part(tf.ones((embeddings.shape[0],embeddings.shape[0])), 1, 1) - tf.eye(embeddings.shape[0]); # weights.shape = (N, N)
     trainsample = tf.train.Example(features = tf.train.Features(
       feature = {
+        'num': tf.train.Feature(int64_list = tf.train.Int64List(value = [len(positions)])),
         'embedings': tf.train.Feature(float_list = tf.train.FloatList(value = embeddings.reshape(-1))),
-        'weights': tf.train.Feature(float_list = tf.train.FloatList(value = weights.reshape(-1)))}));
+        'weights': tf.train.Feature(float_list = tf.train.FloatList(value = weights.numpy().reshape(-1)))}));
     writer.write(trainsample.SerializeToString());
+    count += 1;
   writer.close();
+  print(str(count) + " samples were written");
   return True;
 
 if __name__ == "__main__":
