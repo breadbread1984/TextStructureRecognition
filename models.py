@@ -49,10 +49,12 @@ def GConv(d_in, d_out, jump = 1):
 
   x = tf.keras.Input((None, d_in)); # x.shape = (batch, N, d_in)
   w = tf.keras.Input((None, None, jump)); # w.shape = (batch, N, N, jump)
-  w_reshape = tf.keras.layers.Lambda(lambda x: tf.reshape(tf.transpose(x, (0,3,1,2)), (-1, tf.shape(x)[3] * tf.shape(x)[1], tf.shape(x)[2])))(w); # w_reshape.shape = (batch, jump * N, N)
+  w_transposed = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,3,1,2)))(w); # w_transposed.shape = (batch, jump, N, N)
+  w_reshape = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (tf.shape(x)[0], tf.shape(x)[1] * tf.shape(x)[2], tf.shape(x)[3])))(w_transposed); # w_reshape.shape = (batch, jump * N, N)
   results = tf.keras.layers.Lambda(lambda x: tf.linalg.matmul(x[0], x[1]))([w_reshape, x]); # results.shape = (batch, jump * N, d_in)
-  results = tf.keras.layers.Lambda(lambda x: tf.transpose(tf.reshape(x[0], (-1, tf.shape(x[1])[3], tf.shape(x[1])[1], tf.shape(x[0])[-1])), (0,2,3,1)))([results, w]); # results.shape = (batch, N, d_in, jump)
-  results = tf.keras.layers.Flatten()(results); # results.shape = (batch, N, d_in * jump)
+  results = tf.keras.layers.Reshape((jump, -1, d_in))(results); # results.shape = (batch, jump, N, d_in)
+  results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,2,3,1)))(results); # results.shape = (batch, N, d_in, jump)
+  results = tf.keras.layers.Reshape((-1, d_in * jump))(results); # results.shape = (batch, N, d_in * jump)
   results = tf.keras.layers.Dense(units = d_out)(results); # results.shape = (batch, N, d_out)
   results = tf.keras.layers.BatchNormalization()(results); # results.shape = (batch, N, d_out)
   return tf.keras.Model(inputs = (x, w), outputs = results);
