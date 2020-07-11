@@ -12,7 +12,7 @@ class_num = 2;
 def main():
 
   gnn = GNN(7, 128, layers, class_num);
-  optimizer = tf.keras.optimizers.Adam(1e-1);
+  optimizer = tf.keras.optimizers.Adam(1e-3);
   trainset = tf.data.TFRecordDataset(join('datasets', 'trainset.tfrecord')).repeat(-1).map(parse_function).batch(1).prefetch(tf.data.experimental.AUTOTUNE);
   if False == exists('checkpoints'): mkdir('checkpoints');
   checkpoint = tf.train.Checkpoint(model = gnn, optimizer = optimizer);
