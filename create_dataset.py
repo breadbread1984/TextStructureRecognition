@@ -4,6 +4,7 @@ import sys;
 from os import mkdir;
 from os.path import join, exists;
 import json;
+import pickle;
 import numpy as np;
 import cv2;
 import tensorflow as tf;
@@ -31,6 +32,7 @@ def create_dataset(dataset_path):
   with open(join(dataset_path, 'via_project.json'), 'r') as f:
     via = json.load(f);
   data_num = 0;
+  classes = dict();
   for fid in via['_via_img_metadata']:
     fn = join(dataset_path, 'images', via['_via_img_metadata'][fid]['filename']);
     img = cv2.imread(fn);
@@ -49,6 +51,8 @@ def create_dataset(dataset_path):
       w = region['shape_attributes']['width'];
       h = region['shape_attributes']['height'];
       transcript = region['region_attributes']['transcript'];
+      region_type = region['region_attributes']['region_type'];
+      if region_type not in classes: classes[region_type] = len(classes);
       left = int(max(0, x));
       top = int(max(0, y));
       right = int(min(img.shape[1], x + w));
@@ -59,7 +63,7 @@ def create_dataset(dataset_path):
         if '0' <= c <= '9': count[0] += 1;
         elif 'A' <= c <= 'Z' or 'a' <= c <= 'z': count[1] += 1;
         else: count[2] += 1;
-      features.append([left / width, top / height, right / width, bottom / height] + count);        
+      features.append([left / width, top / height, right / width, bottom / height] + count);
     if len(features) == 0: continue;
     embeddings = np.array(features, dtype = np.float32); # embeddings.shape = (N, 4)
     weights = tf.linalg.band_part(tf.ones((embeddings.shape[0],embeddings.shape[0])), 1, 1) - tf.eye(embeddings.shape[0]); # weights.shape = (N, N)
@@ -67,10 +71,13 @@ def create_dataset(dataset_path):
       feature = {
         'num': tf.train.Feature(int64_list = tf.train.Int64List(value = [len(features)])),
         'embeddings': tf.train.Feature(float_list = tf.train.FloatList(value = embeddings.reshape(-1))),
+        'label': tf.train.Feature(int64_list = [classes[region_type]]),
         'weights': tf.train.Feature(float_list = tf.train.FloatList(value = weights.numpy().reshape(-1)))}));
     writer.write(trainsample.SerializeToString());
     data_num += 1;
   writer.close();
+  with open('classes.pkl', 'wb') as f:
+    f.write(pickle.dumps(classes));
   print(str(data_num) + " samples were written");
   return True;
 
