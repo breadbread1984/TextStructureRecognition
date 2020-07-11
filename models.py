@@ -77,9 +77,9 @@ def GNN(d_in, num_dims, num_layers, num_classes, has_initial_weight = False):
   prev_w = GraphAdjacentLayer(d_in = d_in + (num_dims // 2) * num_layers, num_dims = num_dims, jump = 2**num_layers, operator = 'J2')([prev_x, prev_w]); # prev_w.shape = (batch, N, N, 2)
   results = GConv(d_in = d_in + (num_dims // 2) * num_layers, d_out = num_classes, jump = 2**(num_layers + 1))([prev_x, prev_w]); # x.shape = (batch, N, num_classes)
   if has_initial_weight:
-    return tf.keras.Model(inputs = (x,w), outputs = results);
+    return tf.keras.Model(inputs = (x,w), outputs = (results, prev_w));
   else:
-    return tf.keras.Model(inputs = x, outputs = results);
+    return tf.keras.Model(inputs = x, outputs = (results, prev_w));
 
 if __name__ == "__main__":
 
@@ -97,5 +97,5 @@ if __name__ == "__main__":
   gnn = GNN(128, 128, 3, 10, True);
   gnn.save('gnn.h5');
   w = tf.constant(np.random.normal(size = (8, 10, 10, 1)), dtype = tf.float32);
-  b = gnn([a,w]);
-  print(b.shape);
+  b, w = gnn([a,w]);
+  print(w.shape);
