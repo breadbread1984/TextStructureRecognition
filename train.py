@@ -17,6 +17,7 @@ def main():
   if False == exists('checkpoints'): mkdir('checkpoints');
   checkpoint = tf.train.Checkpoint(model = gnn, optimizer = optimizer);
   checkpoint.restore(tf.train.latest_checkpoint('checkpoints'));
+  log = tf.summary.create_file_writer('checkpoints');
   avg_loss = tf.keras.metrics.Mean(name = 'loss', dtype = tf.float32);
   for embeddings, weights, labels in trainset:
     # embeddings.shape = (1, N, 7), feature vectors of nodes
@@ -30,7 +31,7 @@ def main():
         i += 1;
         n_jump_adj = tf.linalg.matmul(n_jump_adj, weights); # n_jump_adj.shape = (1, N, N)
         return i, n_jump_adj, loss;
-      _, _, edge_loss = tf.while_loop(lambda i, n_jump_adj, loss: i < adjacent.shape[-1], body, loop_vars = (0, adjacent, 0));
+      _, _, edge_loss = tf.while_loop(lambda i, n_jump_adj, loss: i < adjacent.shape[-1], body, loop_vars = (0, weights, 0));
       loss = class_loss + edge_loss;
     avg_loss.update_state(loss);
     if tf.equal(optimizer.iterations % 100, 0):
