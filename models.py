@@ -41,7 +41,7 @@ def GraphAdjacentLayer(d_in, num_dims, jump = 1, use_dropout = False, activation
   if operator == 'laplace':
     results = tf.keras.layers.Lambda(lambda x: x[1] - x[0])([results, w]); # results.shape = (batch, N, N, jump)
   elif operator == 'J2':
-    results = tf.keras.layers.Concatenate(axis = -1)([results, w]); # results.shape = (batch, N, N, 2 * jump)
+    results = tf.keras.layers.Concatenate(axis = -1)([w, results]); # results.shape = (batch, N, N, 2 * jump)
   else:
     raise Exception('unknown operator!');
   return tf.keras.Model(inputs = (x, w), outputs = results);
@@ -66,6 +66,7 @@ def GNN(d_in, num_dims, num_layers, num_classes, has_initial_weight = False):
   if has_initial_weight:
     w = tf.keras.Input((None, None, 1)); # w.shape = (batch, N, N, 1);
   else:
+    # adjacent matrix of jump 0 step which means that every node can only reach itselves
     w = tf.keras.layers.Lambda(lambda x: tf.tile(tf.reshape(tf.eye(tf.shape(x)[1]), (1,tf.shape(x)[1],tf.shape(x)[1],1)), (tf.shape(x)[0], 1, 1, 1)))(x); # w.shape = (batch, N, N, 1)
   prev_x = x;
   prev_w = w;

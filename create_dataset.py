@@ -71,7 +71,7 @@ def create_dataset(dataset_path):
       labels.append(classes[region_type]);
     if len(features) == 0: continue;
     embeddings = np.array(features, dtype = np.float32); # embeddings.shape = (N, 4)
-    weights = tf.linalg.band_part(tf.ones((embeddings.shape[0],embeddings.shape[0])), 1, 1) - tf.eye(embeddings.shape[0]); # weights.shape = (N, N)
+    weights = tf.linalg.band_part(tf.ones((embeddings.shape[0],embeddings.shape[0])), 1, 1); # weights.shape = (N, N)
     trainsample = tf.train.Example(features = tf.train.Features(
       feature = {
         'num': tf.train.Feature(int64_list = tf.train.Int64List(value = [len(features)])),

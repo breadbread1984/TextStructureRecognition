@@ -12,7 +12,7 @@ class_num = 2;
 def main():
 
   gnn = GNN(7, 128, layers, class_num);
-  optimizer = tf.keras.optimizers.Adam(1e-3);
+  optimizer = tf.keras.optimizers.Adam(1e-1);
   trainset = tf.data.TFRecordDataset(join('datasets', 'trainset.tfrecord')).repeat(-1).map(parse_function).batch(1).prefetch(tf.data.experimental.AUTOTUNE);
   if False == exists('checkpoints'): mkdir('checkpoints');
   checkpoint = tf.train.Checkpoint(model = gnn, optimizer = optimizer);
@@ -31,7 +31,7 @@ def main():
         i += 1;
         n_jump_adj = tf.linalg.matmul(n_jump_adj, weights); # n_jump_adj.shape = (1, N, N)
         return i, n_jump_adj, loss;
-      _, _, edge_loss = tf.while_loop(lambda i, n_jump_adj, loss: i < adjacent.shape[-1], body, loop_vars = (0, weights, 0));
+      _, _, edge_loss = tf.while_loop(lambda i, n_jump_adj, loss: i < adjacent.shape[-1], body, loop_vars = (1, weights, 0));
       loss = class_loss + edge_loss;
     avg_loss.update_state(loss);
     if tf.equal(optimizer.iterations % 100, 0):
