@@ -27,7 +27,7 @@ def main():
       features, adjacent = gnn(embeddings); # features.shape = (1, N, class_num), adjacent.shape = (1, N, N, jumps = 16)
       class_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(labels, features);
       def body(i, n_jump_adj, loss):
-        loss += tf.keras.losses.MAE(n_jump_adj, adjacent[:,:,:,i]);
+        loss += tf.keras.losses.MSE(n_jump_adj, adjacent[:,:,:,i]);
         i += 1;
         n_jump_adj = tf.linalg.matmul(n_jump_adj, weights); # n_jump_adj.shape = (1, N, N)
         return i, n_jump_adj, loss;
