@@ -39,7 +39,7 @@ def create_dataset(dataset_path):
       continue;
     width = img.shape[1];
     height = img.shape[0];
-    positions = list();
+    features = list();
     for region in via['_via_img_metadata'][fid]['regions']:
       if region['shape_attributes']['name'] != 'rect':
         print('extraction of %s regions not yet implemented!' % region['shape_attributes']['name']);
@@ -48,18 +48,24 @@ def create_dataset(dataset_path):
       y = region['shape_attributes']['y'];
       w = region['shape_attributes']['width'];
       h = region['shape_attributes']['height'];
+      transcript = region['region_attributes']['transcript'];
       left = int(max(0, x));
       top = int(max(0, y));
       right = int(min(img.shape[1], x + w));
       bottom = int(min(img.shape[0], y + h));      
       crop = img[top:bottom, left:right, :];
-      positions.append([left / width, top / height, right / width, bottom / height]);
-    if len(positions) == 0: continue;
-    embeddings = np.array(positions, dtype = np.float32); # embeddings.shape = (N, 4)
+      count = [0,0,0]; # numeric, alphabet, symbol
+      for c in transcript:
+        if '0' <= c <= '9': count[0] += 1;
+        elif 'A' <= c <= 'Z' or 'a' <= c <= 'z': count[1] += 1;
+        else: count[2] += 1;
+      features.append([left / width, top / height, right / width, bottom / height] + count);        
+    if len(features) == 0: continue;
+    embeddings = np.array(features, dtype = np.float32); # embeddings.shape = (N, 4)
     weights = tf.linalg.band_part(tf.ones((embeddings.shape[0],embeddings.shape[0])), 1, 1) - tf.eye(embeddings.shape[0]); # weights.shape = (N, N)
     trainsample = tf.train.Example(features = tf.train.Features(
       feature = {
-        'num': tf.train.Feature(int64_list = tf.train.Int64List(value = [len(positions)])),
+        'num': tf.train.Feature(int64_list = tf.train.Int64List(value = [len(features)])),
         'embedings': tf.train.Feature(float_list = tf.train.FloatList(value = embeddings.reshape(-1))),
         'weights': tf.train.Feature(float_list = tf.train.FloatList(value = weights.numpy().reshape(-1)))}));
     writer.write(trainsample.SerializeToString());
