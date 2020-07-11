@@ -66,7 +66,7 @@ def create_dataset(dataset_path):
     trainsample = tf.train.Example(features = tf.train.Features(
       feature = {
         'num': tf.train.Feature(int64_list = tf.train.Int64List(value = [len(features)])),
-        'embedings': tf.train.Feature(float_list = tf.train.FloatList(value = embeddings.reshape(-1))),
+        'embeddings': tf.train.Feature(float_list = tf.train.FloatList(value = embeddings.reshape(-1))),
         'weights': tf.train.Feature(float_list = tf.train.FloatList(value = weights.numpy().reshape(-1)))}));
     writer.write(trainsample.SerializeToString());
     data_num += 1;
