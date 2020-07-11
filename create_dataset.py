@@ -71,7 +71,7 @@ def create_dataset(dataset_path):
       feature = {
         'num': tf.train.Feature(int64_list = tf.train.Int64List(value = [len(features)])),
         'embeddings': tf.train.Feature(float_list = tf.train.FloatList(value = embeddings.reshape(-1))),
-        'label': tf.train.Feature(int64_list = [classes[region_type]]),
+        'label': tf.train.Feature(int64_list = tf.train.Int64(value = [classes[region_type]])),
         'weights': tf.train.Feature(float_list = tf.train.FloatList(value = weights.numpy().reshape(-1)))}));
     writer.write(trainsample.SerializeToString());
     data_num += 1;
