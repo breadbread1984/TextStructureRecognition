@@ -18,7 +18,7 @@ def parse_function(serialized_example):
       'weights': tf.io.VarLenFeature(dtype = tf.float32)});
   num = tf.cast(feature['num'], dtype = tf.int32);
   embeddings = tf.sparse.to_dense(feature['embeddings'], default_value = 0);
-  embeddings = tf.reshape(embeddings, (num, 4));
+  embeddings = tf.reshape(embeddings, (num, 7));
   weights = tf.sparse.to_dense(feature['weights'], default_value = 0);
   weights = tf.reshape(weights, (num, num));
   return embeddings, weights;
@@ -30,7 +30,7 @@ def create_dataset(dataset_path):
   writer = tf.io.TFRecordWriter(join('datasets', 'trainset.tfrecord'));
   with open(join(dataset_path, 'via_project.json'), 'r') as f:
     via = json.load(f);
-  count = 0;
+  data_num = 0;
   for fid in via['_via_img_metadata']:
     fn = join(dataset_path, 'images', via['_via_img_metadata'][fid]['filename']);
     img = cv2.imread(fn);
@@ -69,9 +69,9 @@ def create_dataset(dataset_path):
         'embedings': tf.train.Feature(float_list = tf.train.FloatList(value = embeddings.reshape(-1))),
         'weights': tf.train.Feature(float_list = tf.train.FloatList(value = weights.numpy().reshape(-1)))}));
     writer.write(trainsample.SerializeToString());
-    count += 1;
+    data_num += 1;
   writer.close();
-  print(str(count) + " samples were written");
+  print(str(data_num) + " samples were written");
   return True;
 
 if __name__ == "__main__":
