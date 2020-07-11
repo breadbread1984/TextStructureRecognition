@@ -16,13 +16,16 @@ def parse_function(serialized_example):
     features = {
       'num': tf.io.FixedLenFeature((), dtype = tf.int64),
       'embeddings': tf.io.VarLenFeature(dtype = tf.float32),
+      'labels': tf.io.VarLenFeature(dtype = tf.int64),
       'weights': tf.io.VarLenFeature(dtype = tf.float32)});
   num = tf.cast(feature['num'], dtype = tf.int32);
   embeddings = tf.sparse.to_dense(feature['embeddings'], default_value = 0);
   embeddings = tf.reshape(embeddings, (num, 7));
+  labels = tf.sparse.to_dense(feature['labels'], default_value = 0);
+  labels = tf.reshape(labels, (num,));
   weights = tf.sparse.to_dense(feature['weights'], default_value = 0);
   weights = tf.reshape(weights, (num, num));
-  return embeddings, weights;
+  return embeddings, weights, labels;
 
 def create_dataset(dataset_path):
 
@@ -42,6 +45,7 @@ def create_dataset(dataset_path):
     width = img.shape[1];
     height = img.shape[0];
     features = list();
+    labels = list();
     for region in via['_via_img_metadata'][fid]['regions']:
       if region['shape_attributes']['name'] != 'rect':
         print('extraction of %s regions not yet implemented!' % region['shape_attributes']['name']);
@@ -64,6 +68,7 @@ def create_dataset(dataset_path):
         elif 'A' <= c <= 'Z' or 'a' <= c <= 'z': count[1] += 1;
         else: count[2] += 1;
       features.append([left / width, top / height, right / width, bottom / height] + count);
+      labels.append(classes[region_type]);
     if len(features) == 0: continue;
     embeddings = np.array(features, dtype = np.float32); # embeddings.shape = (N, 4)
     weights = tf.linalg.band_part(tf.ones((embeddings.shape[0],embeddings.shape[0])), 1, 1) - tf.eye(embeddings.shape[0]); # weights.shape = (N, N)
@@ -71,7 +76,7 @@ def create_dataset(dataset_path):
       feature = {
         'num': tf.train.Feature(int64_list = tf.train.Int64List(value = [len(features)])),
         'embeddings': tf.train.Feature(float_list = tf.train.FloatList(value = embeddings.reshape(-1))),
-        'label': tf.train.Feature(int64_list = tf.train.Int64(value = [classes[region_type]])),
+        'labels': tf.train.Feature(int64_list = tf.train.Int64List(value = labels.reshape(-1))),
         'weights': tf.train.Feature(float_list = tf.train.FloatList(value = weights.numpy().reshape(-1)))}));
     writer.write(trainsample.SerializeToString());
     data_num += 1;
