@@ -19,19 +19,19 @@ def main():
   checkpoint.restore(tf.train.latest_checkpoint('checkpoints'));
   log = tf.summary.create_file_writer('checkpoints');
   avg_loss = tf.keras.metrics.Mean(name = 'loss', dtype = tf.float32);
-  for embeddings, weights, labels in trainset:
+  for embeddings, _1_jump_adj, region_types in trainset:
     # embeddings.shape = (1, N, 7), feature vectors of nodes
-    # weights.shape = (1, N, N), adjacent matrix
-    # labels.shape = (1, N), class of nodes      
+    # _1_jump_adj.shape = (1, N, N), adjacent matrix
+    # region_types.shape = (1, N), class of nodes      
     with tf.GradientTape() as tape:
       features, adjacent = gnn(embeddings); # features.shape = (1, N, class_num), adjacent.shape = (1, N, N, jumps = 16)
-      class_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(labels, features);
+      class_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(region_types, features);
       def body(i, n_jump_adj, loss):
         loss += tf.keras.losses.MSE(n_jump_adj, adjacent[:,:,:,i]);
         i += 1;
-        n_jump_adj = tf.linalg.matmul(n_jump_adj, weights); # n_jump_adj.shape = (1, N, N)
+        n_jump_adj = tf.linalg.matmul(n_jump_adj, _1_jump_adj); # n_jump_adj.shape = (1, N, N)
         return i, n_jump_adj, loss;
-      _, _, edge_loss = tf.while_loop(lambda i, n_jump_adj, loss: i < adjacent.shape[-1], body, loop_vars = (1, weights, 0));
+      _, _, edge_loss = tf.while_loop(lambda i, n_jump_adj, loss: i < adjacent.shape[-1], body, loop_vars = (1, _1_jump_adj, 0));
       loss = class_loss + edge_loss;
     avg_loss.update_state(loss);
     if tf.equal(optimizer.iterations % 100, 0):
