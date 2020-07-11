@@ -83,7 +83,7 @@ def create_dataset(dataset_path):
   writer.close();
   with open('classes.pkl', 'wb') as f:
     f.write(pickle.dumps(classes));
-  print('class num is ' + len(classes));
+  print('class num is ' + str(len(classes)));
   print(str(data_num) + " samples were written");
   return True;
 
