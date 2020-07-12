@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import argparse;
 from os import mkdir;
 from os.path import join, exists;
 import tensorflow as tf;
@@ -50,4 +51,14 @@ def main():
 if __name__ == "__main__":
 
   assert tf.executing_eagerly();
-  main();
+  parser = argparse.ArgumentParser();
+  device = 'CPU';
+  parser.add_argument('-d', '--device', type = str, default = 'CPU', choices = ['cpu', 'cuda'], help = 'device to use, it must be cpu or cuda');
+  args = parser.parse_args();
+  if args.device:
+    assert(args.device in ['cpu', 'cuda']);
+    device = 'CPU' if args.device == 'cpu' else 'GPU';
+  if device == 'CPU':
+    with tf.device('/CPU:0'): main();
+  if device == 'GPU':
+    with tf.device('/GPU:0'): main();
