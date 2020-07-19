@@ -23,7 +23,8 @@ def main():
   for embeddings, _1_jump_adj, region_types in trainset:
     # embeddings.shape = (1, N, 7), feature vectors of nodes
     # _1_jump_adj.shape = (1, N, N), adjacent matrix
-    # region_types.shape = (1, N), class of nodes      
+    # region_types.shape = (1, N), class of nodes
+    _1_jump_adj = tf.keras.layers.Softmax(axis = -1)(_1_jump_adj);
     with tf.GradientTape() as tape:
       features, adjacent = gnn(embeddings); # features.shape = (1, N, class_num), adjacent.shape = (1, N, N, jumps = 16)
       adjacent = tf.math.sigmoid(adjacent);
