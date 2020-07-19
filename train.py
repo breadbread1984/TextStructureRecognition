@@ -27,13 +27,11 @@ def main():
     _1_jump_adj = tf.keras.layers.Softmax(axis = -1)(_1_jump_adj);
     with tf.GradientTape() as tape:
       features, adjacent = gnn(embeddings); # features.shape = (1, N, class_num), adjacent.shape = (1, N, N, jumps = 16)
-      adjacent = tf.math.sigmoid(adjacent);
       class_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(region_types, features);
       def body(i, n_jump_adj, loss):
         loss += tf.keras.losses.MSE(tf.keras.layers.Flatten()(n_jump_adj), tf.keras.layers.Flatten()(adjacent[:,:,:,i]));
         i += 1;
         n_jump_adj = tf.linalg.matmul(n_jump_adj, _1_jump_adj); # n_jump_adj.shape = (1, N, N)
-        n_jump_adj = tf.where(tf.math.equal(n_jump_adj, 0), tf.zeros_like(n_jump_adj), tf.ones_like(n_jump_adj));
         return i, n_jump_adj, loss;
       _, _, edge_loss = tf.while_loop(lambda i, n_jump_adj, loss: i < adjacent.shape[-1], body, loop_vars = (1, _1_jump_adj, 0));
       loss = class_loss + edge_loss;
