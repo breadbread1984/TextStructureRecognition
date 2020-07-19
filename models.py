@@ -28,9 +28,7 @@ def GraphAdjacentLayer(d_in, num_dims, jump = 1, use_dropout = False, activation
   # filter adjacent nodes which are already reachable in less than j jumps
   if activation == 'softmax':
     results = tf.keras.layers.Lambda(lambda x: x[0] - x[1] * 1e8)([results, w]); # results.shape = (batch, N, N, jump)
-    flatten = tf.keras.layers.Reshape((-1, jump))(results); # flatten.shape = (batch, N * N, jump)
-    weights = tf.keras.layers.Softmax(axis = -2)(flatten); # weights.shape = (batch, N * N, jump)
-    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x[0], tf.shape(x[1])))([weights, results]); # results.shape = (batch, N, N, jump)
+    weights = tf.keras.layers.Softmax(axis = -2)(results); # weights.shape = (batch, N, N, jump)
   elif activation == 'sigmoid':
     results = tf.keras.layers.Lambda(lambda x: tf.math.sigmoid(x))(results); # results.shape = (batch, N, N, jump)
     results = tf.keras.layers.Lambda(lambda x: x[0] * (1 - x[1]))([results, w]); # results.shape = (batch, N, N, jump)
