@@ -7,12 +7,12 @@ import tensorflow as tf;
 from models import GNN;
 from create_dataset import parse_function;
 
-layers = 3;
+layers = 2;
 class_num = 2;
 
 def main():
 
-  gnn = GNN(7, 128, layers, class_num);
+  gnn = GNN(7, 96, layers, class_num);
   optimizer = tf.keras.optimizers.Adam(1e-3);
   trainset = tf.data.TFRecordDataset(join('datasets', 'trainset.tfrecord')).repeat(-1).map(parse_function).batch(1).prefetch(tf.data.experimental.AUTOTUNE);
   if False == exists('checkpoints'): mkdir('checkpoints');
@@ -29,7 +29,7 @@ def main():
       adjacent = tf.math.sigmoid(adjacent);
       class_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(region_types, features);
       def body(i, n_jump_adj, loss):
-        loss += tf.keras.losses.MSE(n_jump_adj, adjacent[:,:,:,i]);
+        loss += tf.keras.losses.MSE(tf.keras.layers.Flatten()(n_jump_adj), tf.keras.layers.Flatten()(adjacent[:,:,:,i]));
         i += 1;
         n_jump_adj = tf.linalg.matmul(n_jump_adj, _1_jump_adj); # n_jump_adj.shape = (1, N, N)
         n_jump_adj = tf.where(tf.math.equal(n_jump_adj, 0), tf.zeros_like(n_jump_adj), tf.ones_like(n_jump_adj));
