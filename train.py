@@ -24,7 +24,8 @@ def main():
     # embeddings.shape = (1, N, 7), feature vectors of nodes
     # _1_jump_adj.shape = (1, N, N), adjacent matrix
     # region_types.shape = (1, N), class of nodes
-    _1_jump_adj = tf.keras.layers.Softmax(axis = -1)(_1_jump_adj);
+    row_sum = tf.math.reduce_sum(_1_jump_adj, axis = -1, keepdims = 1);
+    _1_jump_adj = _1_jump_adj / row_sum;
     with tf.GradientTape() as tape:
       features, adjacent = gnn(embeddings); # features.shape = (1, N, class_num), adjacent.shape = (1, N, N, jumps = 16)
       class_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(region_types, features);
