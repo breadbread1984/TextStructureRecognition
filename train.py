@@ -31,7 +31,7 @@ def main():
       def body(i, n_jump_adj, loss):
         loss += tf.keras.losses.MSE(tf.keras.layers.Flatten()(n_jump_adj), tf.keras.layers.Flatten()(adjacent[:,:,:,i]));
         i += 1;
-        n_jump_adj = tf.linalg.matmul(n_jump_adj, _1_jump_adj); # n_jump_adj.shape = (1, N, N)
+        n_jump_adj = tf.linalg.matmul(_1_jump_adj, n_jump_adj); # n_jump_adj.shape = (1, N, N)
         return i, n_jump_adj, loss;
       _, _, edge_loss = tf.while_loop(lambda i, n_jump_adj, loss: i < adjacent.shape[-1], body, loop_vars = (1, _1_jump_adj, 0));
       loss = class_loss + edge_loss;
